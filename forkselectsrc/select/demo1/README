@@ -1,0 +1,2 @@
+If you're on a line buffered terminal,
+ the key you hit should be RETURN or it will time out anyway.

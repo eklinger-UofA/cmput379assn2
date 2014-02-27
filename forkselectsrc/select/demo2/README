@@ -1,0 +1,6 @@
+Run the server.
+
+Then from other terminals, connect to the server as "telnet 127.0.0.1 2222"
+Anything typed from one client (after RETURN) will immediately be sent to other clients.
+
+To quit, press escape sequence (CTRL+] and RETURN) and then enter the command "close".
