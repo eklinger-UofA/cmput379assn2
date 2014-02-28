@@ -1,0 +1,11 @@
+CMPUT 379 Assignment 2
+Eric Klinger
+1278636
+
+Notes:
+
+Excellent guide on daemonizing processes:
+http://www.netzmafia.de/skripten/unix/linux-daemon-howto.html
+and another:
+http://www.thegeekstuff.com/2012/02/c-daemon-process/
+

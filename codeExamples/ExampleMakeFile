@@ -1,0 +1,28 @@
+# Generic Makefile where the only lines
+# that really need to changes are the sources
+# and the executables, with executables the programs
+# with main functions
+
+CC=cc  # For C++, change to gcc
+CFLAGS=-m32 # Add -g if you want to use the debugger, GDB
+LIBS=-lpthread # Flags for linking, such as math libraries with -lm
+SOURCES= #strlcpy.c # Usually where you would put objects (e.g. helpers.o) to link into executables
+OBJECTS=$(SOURCES:.c=.o)
+EXECUTABLES=client condvar1 coredumper dotprod_mutex dumbshell filewrite-C filewrite-POSIX filewrite-syscall fork1 fork2 iagree intloop killer loopstomp mem p1 pthread_hello pthread_hello_arg2 pthread_join1 seg1 seg2 select_server sema1 server shellcode1 shm1 shm2 sig1 sig2 syscalls zombie
+
+all: $(SOURCES) $(EXECUTABLES)
+
+clean:
+	rm -f $(EXECUTABLES) *.o *~ core
+
+# Want to ensure that executables always recompile, eve
+# if there are no changes to dependencies
+.PHONY: clean $(EXECUTABLES)
+
+$(EXECUTABLES): $(OBJECTS) 
+	$(CC) $(CFLAGS) $(OBJECTS) $@.c -o $@ $(LIBS)
+
+$(OBJECTS): $(SOURCES)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+

@@ -1,0 +1,24 @@
+CMPUT 379, Assignment 2, Log Format
+Your server must log successful and failed requests in a specific format.
+
+A request is successful when the client asks for a file, the file is found and successfully written in it's entirety to the socket that the client is connected on.
+
+Anything else happening is an error.
+
+For each request, the time of the request must be recorded as it is completed (successfully or not), as well as what happened, this can be "200 OK BYTES_WRITTEN/TOTAL_BYTES" for a file send, or the HTTP error code for other errors. Note that this means that if the client disconnects before the entire file can be written out on the socket, BYTES_WRITTEN may be less that TOTAL_BYTES which would be the size of the file.
+
+Log format must be:
+
+
+Date[tab]Client IP address[tab]request line[tab]response code
+Note that [tab] is the ASCII character whose value is 9. So the log must look like this, with the correct current date
+
+
+Tue 05 Nov 2013 19:18:34 GMT    127.0.0.1    GET /testDocument.txt HTTP/1.1    404 Not Found
+Tue 05 Nov 2013 19:18:34 GMT    127.0.0.1    GET /favicon.ico HTTP/1.1    404 Not Found
+Tue 05 Nov 2013 19:18:34 GMT    127.0.0.1    GET /favicon.ico HTTP/1.1    404 Not Found
+Tue 05 Nov 2013 19:19:59 GMT    127.0.0.1    GET /testPermission.txt HTTP/1.1    200 OK 53/53
+Tue 05 Nov 2013 19:20:30 GMT    127.0.0.1    GET /testPermission.txt HTTP/1.1    200 OK 53/53
+Tue 05 Nov 2013 19:21:09 GMT    127.0.0.1    GET /testDocument.txt HTTP/1.1    200 OK 22/22
+Tue 05 Nov 2013 19:21:20 GMT    127.0.0.1    GET /testDocument.txt HTTP/1.1    200 OK 22/22
+Tue 05 Nov 2013 19:21:27 GMT    127.0.0.1    GET /largefile.txt HTTP/1.1    200 OK 8478/8478

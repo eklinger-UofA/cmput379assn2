@@ -1,0 +1,19 @@
+Just a little modification.
+
+In the code where you call socket
+
+ sock = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sock < 0) {
+        perror ("Server: cannot open master socket");
+        exit (1);
+    }
+
+Instead of using
+
+if (sock < 0)
+
+it is recommended to use
+
+if (sock == -1)
+
+It is always a good practise to follow the documentation of man page.
