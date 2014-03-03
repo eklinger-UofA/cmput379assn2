@@ -184,9 +184,9 @@ int main(int argc, char *argv[])
 	 * if we are to use it as a C string
 	 */
 	buffer[rc] = '\0';
-#ifdef DEBUG
+//#ifdef DEBUG
 	printf("Server sent:  %s",buffer);
-#endif
+//#endif
 	alarm(0);  /* cancel our alarm.. we made it through */
 	close(sd);
 	return(0);
