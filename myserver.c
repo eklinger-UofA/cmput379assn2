@@ -1,13 +1,47 @@
-#include "myserver.h"
-
-#include <dirent.h>
-#include <time.h>
-
-#include <stdlib.h>
-
-/* EXIT_SUCCESS = 0
- * EXIT_FAILURE = 1
+/*
+ * Copyright (c) 2014 Eric Klinger <eklinger@ualberta.ca>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+
+/* myserver.c - base server code for the three implementations
+ * of the server assignment 2 for CMPUT 379 Winter 2014
+ *
+ * Accepted command line args are as follows:
+ *
+ * ./myserver <TCP port number> </path/to/static/files/> </path/to/logfile.txt>
+ *
+ * More details in README
+ */
+
+/*
+ * compile with gcc:
+ *
+ * gcc -c strlcpy.c
+ * gcc -o server server.c strlcpy.o
+ *
+ * Alternatively makefile is included:
+ *
+ * make 
+ * make run
+ *
+ * Testing for failure conditions added, please see README
+ * and makefile for more details
+ *
+ * make clean also provided to clean up generated object files
+ */
+
+#include "myserver.h"
 
 static void usage()
 {
@@ -16,7 +50,7 @@ static void usage()
                 /path/to/log/file.ext", __progname);
         exit(1);
 }
-        
+
 char dir_to_host[80];
 char log_file[80];
 char carriage_return[10] = "\r\n";
@@ -84,7 +118,7 @@ int main(int argc, char *argv[])
         }
 
         /* time to set up and listen on the socket */
-        int sock, snew, fromlength, number, outnumber;
+        int sock, snew, fromlength, outnumber;
         struct sockaddr_in master, from;
 
         memset(&master, 0, sizeof(master));
@@ -107,11 +141,8 @@ int main(int argc, char *argv[])
         }
 
         /* We are now bound and listing to connections on sock
-         * each call to accept wil return is a description talking
          * to a connected client
          */
-
-        number = 0;
 	    printf("Server up and listening for connections on port %u\n", port);
         while(1){
                 int fromsd;
@@ -120,16 +151,10 @@ int main(int argc, char *argv[])
                 if (fromsd == -1){
                         err(1, "accept failed");
                 }
-                /* We can folk children to deal with each connection, this
-                 * way we can support > 1 client at one time
-                 */
-
-                /* put forking stuff from codeExamples/server.c here */
-                
                 /* get the ip of the request to be used in logging later */
                 char ip[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &(from.sin_addr), ip, INET_ADDRSTRLEN);
-
+                
                 /* Now ready to service the new request */
                 service_request(fromsd, ip);
         }

@@ -17,6 +17,13 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <dirent.h>
+#include <time.h>
+
+/* EXIT_SUCCESS = 0
+ * EXIT_FAILURE = 1
+ */
+
 
 void service_request(int, char*);
 int read_request(int, char*);
