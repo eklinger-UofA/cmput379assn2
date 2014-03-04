@@ -20,6 +20,10 @@
 #include <dirent.h>
 #include <time.h>
 
+/* added for pthread stuff */
+#include <pthread.h>
+#define NUM_THREADS 10
+
 /* EXIT_SUCCESS = 0
  * EXIT_FAILURE = 1
  */
