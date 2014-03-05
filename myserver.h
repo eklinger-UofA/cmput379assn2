@@ -24,13 +24,25 @@
  * EXIT_FAILURE = 1
  */
 
+/* All error handling and input checking function */
+static void usage();
+void check_number_of_args(int);
+int get_port_number(char*);
+void check_file_directory(char*);
+void check_log_file(char*);
 
+/* Functions to handle the request */
 void service_request(int, char*);
 int read_request(int, char*);
 
+/* Logging functions */
+void write_logs();
+
+/* Functions for writing responses back to the client */
 void send_response(int, char*, char*, char*, unsigned int);
 void return_200_ok(int, char*, char*);
 void return_bad_request(int, char*);
 void return_not_found(int, char*);
 void return_found(int, char*);
 void return_server_error(int, char*);
+
