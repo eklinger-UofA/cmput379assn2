@@ -91,8 +91,6 @@ int main(int argc, char *argv[])
 
 	    printf("Server up and listening for connections on port %u\n", port);
         while(1){
-                // TODO anything in here that is our bad, and we can still
-                // respond to the client should be a 500
                 fromlength = sizeof(from);
                 fromsd = accept(sock, (struct sockaddr *) &from, &fromlength);
                 if (fromsd == -1){
