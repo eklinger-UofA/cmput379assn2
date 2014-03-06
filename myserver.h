@@ -44,7 +44,7 @@ void get_current_time(char*, int);
 
 /* Functions for writing responses back to the client */
 int send_response(int, char*, char*, char*, unsigned int);
-void return_200_ok(int, char*, char*);
+int return_200_ok(int, char*, char*);
 void return_bad_request(int, char*);
 void return_not_found(int, char*);
 void return_forbidden(int, char*);

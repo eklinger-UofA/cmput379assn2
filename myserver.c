@@ -51,8 +51,8 @@ char carriage_return[10] = "\r\n";
 int main(int argc, char *argv[])
 {
         struct sockaddr_in master, from;
-        char *ep;
-        int i, port_number, sock, fromlength;
+        char *ep, ip[INET_ADDRSTRLEN];
+        int i, port_number, sock, fromlength, fromsd;
         u_short port;
 
         /* if the number of args aren't as expected, print usage info */
@@ -93,14 +93,12 @@ int main(int argc, char *argv[])
         while(1){
                 // TODO anything in here that is our bad, and we can still
                 // respond to the client should be a 500
-                int fromsd;
                 fromlength = sizeof(from);
                 fromsd = accept(sock, (struct sockaddr *) &from, &fromlength);
                 if (fromsd == -1){
                         fprintf(stderr, "accept failed\n");
                 }
                 /* get the ip of the request to be used in logging later */
-                char ip[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &(from.sin_addr), ip, INET_ADDRSTRLEN);
                 
                 /* Now ready to service the new request */
@@ -113,6 +111,7 @@ int main(int argc, char *argv[])
 static void usage()
 {
         extern char * __progname;
+
         fprintf(stderr, "Usage: %s portnumber path/to/files/to/server \
                 /path/to/log/file.ext", __progname);
         exit(1);
@@ -132,6 +131,7 @@ int get_port_number(char* port_string)
 {
         char *ep;
         int port_number;
+
         /* get and print the port_number from arv */
         port_number = strtoul(port_string, &ep, 10);
         printf("port_number %u\n", port_number);
@@ -179,6 +179,7 @@ void check_log_file(char* log_file_path)
 {
         /* Time to test the log file, if we can't open it error */
         FILE *fp = fopen(log_file_path, "r");
+
         if (!fp){
             fprintf(stderr, "Log files doesn't exist");
             exit(1);
@@ -194,26 +195,38 @@ void check_log_file(char* log_file_path)
 void service_request(int fromsd, char* ip)
 {
         char requestInfo[4096] = {0};
+        char firstLine[80];
+        char time_buffer[70];
+        char s[256];
+        char* http_method = NULL; 
+        char* filePath = NULL; 
+        char* httpProt = NULL; 
+        char *source = NULL;
+        char fullFilePath[100];
+        char progress_string[8];
+        struct stat sb;
+        FILE *requestedfp;
+        long bufsize;
         int read = read_request(fromsd, requestInfo);
+        int progress;
+        size_t newLen;
+
         printf("This is whats contained in requestInfo char wise. \n");
         printf("buffer: %s\n", requestInfo);
         printf("And the value READ is as follows: %d\n", read);
 
-        char firstLine[80];
         get_request_first_line(requestInfo, firstLine);
         printf("This is in firstLine: %s\n", firstLine);
 
-        char time_buffer[70];
         get_current_time(time_buffer, 70);
 
-        char s[256];
         strcpy(s, firstLine);
 
-        char* http_method = strtok(s, " "); 
+        http_method = strtok(s, " "); 
         printf("http_method: %s\n", http_method);
-        char* filePath = strtok(NULL, " "); 
+        filePath = strtok(NULL, " "); 
         printf("filePath: %s\n", filePath);
-        char* httpProt = strtok(NULL, " "); 
+        httpProt = strtok(NULL, " "); 
         printf("httpProt: %s\n", httpProt);
 
         if (check_http_method(http_method)){
@@ -228,16 +241,13 @@ void service_request(int fromsd, char* ip)
         }
 
         /* Concat the paths of the served dir and the requested file path */
-        char fullFilePath[100];
         strlcpy(fullFilePath, dir_to_host, sizeof(fullFilePath));
         printf("fullFilePath: %s\n", fullFilePath);
         strcat(fullFilePath, filePath);
         printf("fullFilePath: %s\n", fullFilePath);
 
-        FILE *requestedfp;
 
         /* check for existence of requested file */
-        struct stat sb;
         if (stat(fullFilePath, &sb) == -1){
                 /* file doesn't exist */
                 return_not_found(fromsd, time_buffer);
@@ -258,10 +268,10 @@ void service_request(int fromsd, char* ip)
         // Read from the file, and get ints contents into a buffer
         // its in requestedfp
         /* Go to the end of the file */
-        char *source = NULL;
         if (fseek(requestedfp, 0L, SEEK_END) == 0){
             /* Get the size of the file */
-            long bufsize = ftell(requestedfp);
+
+            bufsize = ftell(requestedfp);
             if (bufsize == -1){
                 /* error */
                 err(1, "Failed to get file size");
@@ -276,7 +286,7 @@ void service_request(int fromsd, char* ip)
             }
             
             /* read the entire file into memory */
-            size_t newLen = fread(source, sizeof(char), bufsize, requestedfp);
+            newLen = fread(source, sizeof(char), bufsize, requestedfp);
             if (newLen == 0){
                 err(1, "Error reading file");
             }
@@ -289,8 +299,12 @@ void service_request(int fromsd, char* ip)
         printf("Moment of truth, does this fread work\n");
         printf("%s", source);
 
-        return_200_ok(fromsd, time_buffer, source);
-        // TODO write to logs with progress
+        progress = return_200_ok(fromsd, time_buffer, source);
+        printf("size of the file sent: %d\n", (int)strlen(source));
+        printf("bytes written: %d\n", progress);
+        sprintf(progress_string, "%d/%d", (int)strlen(source), progress);
+        printf("progress string: %s\n", progress_string);
+        write_logs(time_buffer, ip, firstLine, "200 OK", progress_string);
         
         free(source);
 }
@@ -333,6 +347,7 @@ int read_request(int fromsd, char * buffer)
 void get_request_first_line(char* requestInfo, char* firstLine)
 {
         int i;
+
         for (i = 0; i < strlen(requestInfo); i++) {
             if (requestInfo[i] == '\n'){
                 break;
@@ -361,18 +376,19 @@ void write_logs(char* time, char* ip, char* firstLine, char* response,
 {
         // practice opening, adding to and closing the log file
         FILE *fp; /* A file pointer */        
+        int fc;
+
         // log file located at: /Users/Eric/git/379/assignment2/testLogFile.txt
         fp = fopen(log_file, "a+");
         printf("Opened log file successfully\n");
         if (progress){
-            return;
             fprintf(fp, "%s\t%s\t%s\t%s %s\n", time, ip, firstLine, response,
                 progress);
         }
         else {
             fprintf(fp, "%s\t%s\t%s\t%s\n", time, ip, firstLine, response);
         }
-        int fc = fclose(fp);
+        fc = fclose(fp);
         if (fc == 0){
             printf("Closed file successfully\n");
         }
@@ -398,6 +414,9 @@ int send_response(int fromsd, char* time, char* firstLine,
 {
         char returnBuffer[10000];
         char bodysize[5];
+        int header_length, length;
+        ssize_t written, w;
+
         sprintf(bodysize, "%d", (unsigned int)strlen(responseBody));
         printf("bodysize: %s", bodysize);
 
@@ -410,6 +429,7 @@ int send_response(int fromsd, char* time, char* firstLine,
         strcat(returnBuffer, carriage_return);
         strcat(returnBuffer, "Content-Length: ");
         strcat(returnBuffer, bodysize);
+        header_length = strlen(returnBuffer) + strlen(carriage_return) * 4;
         strcat(returnBuffer, carriage_return);
         strcat(returnBuffer, carriage_return);
         strcat(returnBuffer, responseBody);
@@ -418,9 +438,8 @@ int send_response(int fromsd, char* time, char* firstLine,
 
 
         printf("Just before writing file to the client\n");
-        int length = (int)strlen(responseBody);
+        length = (int)strlen(responseBody);
         printf("The reported length is: %d\n", length);
-        ssize_t written, w;
         w = 0;
         written = 0;
         while (written < strlen(returnBuffer)){
@@ -434,27 +453,17 @@ int send_response(int fromsd, char* time, char* firstLine,
                 else
                         written += w;
         }
-        /*
-        printf("After writing to the socket, the value of written is: %d\n", (int)written);
-        int header_length = written - length;
-        int amount_written = written - header_length;
-        printf("And the header size is: %d\n", (int)header_length);
-        printf("amount written is: %d\n", amount_written);
-        char progress[4];
-        sprintf(progress, "%d/%d", amount_written, length); 
-        printf("Progress string is as follows: %s\n", progress);
-        */
         close(fromsd);
-        return written;
+        return (written - header_length);
 }
 
 /* sends a 200 OK response */
-void return_200_ok(int fromsd, char* time, char* responseBody)
+int return_200_ok(int fromsd, char* time, char* responseBody)
 {
         char firstLine[] = "HTTP/1.1 200 OK";
 
-        send_response(fromsd, time, firstLine, responseBody,
-            (unsigned int)strlen(responseBody));
+        return(send_response(fromsd, time, firstLine, responseBody,
+            (unsigned int)strlen(responseBody)));
 }
 
 /* sends a 400 bad request response */
