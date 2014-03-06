@@ -91,6 +91,8 @@ int main(int argc, char *argv[])
 
 	    printf("Server up and listening for connections on port %u\n", port);
         while(1){
+                // TODO anything in here that is our bad, and we can still
+                // respond to the client should be a 500
                 int fromsd;
                 fromlength = sizeof(from);
                 fromsd = accept(sock, (struct sockaddr *) &from, &fromlength);
@@ -184,13 +186,14 @@ void check_log_file(char* log_file_path)
             printf("Log file exists\n");
             strlcpy(log_file, log_file_path, sizeof(log_file));
         }
-
+        fclose(fp);
 }
 
 /* Everything above has been refactored to an acceptable level */
 /* And the stuff below needs some serious love */
 
-void service_request(int fromsd, char* ip){
+void service_request(int fromsd, char* ip)
+{
         char requestInfo[4096] = {0};
         int read = read_request(fromsd, requestInfo);
         printf("This is whats contained in requestInfo char wise. \n");
@@ -198,41 +201,34 @@ void service_request(int fromsd, char* ip){
         printf("And the value READ is as follows: %d\n", read);
         // OK, now we have the request data, tokenize the first line and get on with it
         char firstLine[80];
-        int i;
-        for (i = 0; i < strlen(requestInfo); i++) {
-            if (requestInfo[i] == '\n'){
-                break;
-            }
-        }
-        printf("Value of i: %d\n", i);
-        // use strlcpy to copy first part of the request into new string
-        strlcpy(firstLine, requestInfo, i);        
+        get_request_first_line(requestInfo, firstLine);
         printf("This is in firstLine: %s\n", firstLine);
 
+        char time_buffer[70];
+        get_current_time(time_buffer, 70);
 
         char s[256];
         strcpy(s, firstLine);
-        /*
-        char* token = strtok(s, " ");
-        printf("token: %s\n", token);
-        
-        while (token) {
-                printf("token: %s\n", token);
-                token = strtok(NULL, " ");
-        }
-        */
-        char* httpMethod = strtok(s, " "); 
-        printf("httpmethod: %s\n", httpMethod);
+        // TODO run the tokens through some checks, if they aren't valid
+        // need to return a 400 error repsonse for bad request
+        char* http_method = strtok(s, " "); 
+        printf("http_method: %s\n", http_method);
         char* filePath = strtok(NULL, " "); 
         printf("filePath: %s\n", filePath);
         char* httpProt = strtok(NULL, " "); 
         printf("httpProt: %s\n", httpProt);
 
-        // practice opening, adding to and closing the log file
-        FILE *fp; /* A file pointer */        
-        // log file located at: /Users/Eric/git/379/assignment2/testLogFile.txt
-        fp = fopen(log_file, "a+");
-        printf("Opened log file successfully\n");
+
+        if (check_http_method(http_method)){
+            printf("HTTP method is valid\n");
+        }
+        else {
+            fprintf(stderr, "Bad HTTP method\n");
+            /* return a 400 response for a bad request */
+            return_bad_request(fromsd, time_buffer);
+            write_logs(time_buffer, ip, firstLine, "400 Bad Request", 0);
+            return;
+        }
 
         /* Concat the paths of the served dir and the requested file path */
         char fullFilePath[100];
@@ -243,21 +239,17 @@ void service_request(int fromsd, char* ip){
 
         FILE *requestedfp;
 
-        time_t rawtime;
-        struct tm *timeinfo;
-        char buff[70];
-
-        // prints: Current local time and date: Thu 27 Feb 2014 23:23:19 MST
-        // this is the format for the logs and the responses to requests
-        time(&rawtime);
-        timeinfo = localtime(&rawtime);
-        strftime(buff, sizeof buff, "%a %d %b %Y %T %Z", timeinfo);
-
-
+        // TODO need to distinguish between the file existing and the file not 
+        // being able to be opened (permissions)
+        //
+        // File not existing should be 404
+        // Bad permissions should be 403
+        //
         requestedfp = fopen(fullFilePath, "r");
         if (!requestedfp){
             fprintf(stderr, "requested file doesn't exist, should report as error");
-            return_not_found(fromsd, buff);
+            return_not_found(fromsd, time_buffer);
+            write_logs(time_buffer, ip, firstLine, "404 Not Found", 0);
             return;
         }
         else {
@@ -270,12 +262,12 @@ void service_request(int fromsd, char* ip){
         char *source = NULL;
         if (fseek(requestedfp, 0L, SEEK_END) == 0){
             /* Get the size of the file */
-            long bufsize = ftell(fp);
+            long bufsize = ftell(requestedfp);
             if (bufsize == -1){
                 /* error */
                 err(1, "Failed to get file size");
             }
-            /* allocate our biffer to that size. */
+            /* allocate our buffer to that size. */
             source = malloc(sizeof(char) * (bufsize + 1));
 
             /* go back to the start of the file */
@@ -298,30 +290,8 @@ void service_request(int fromsd, char* ip){
         printf("Moment of truth, does this fread work\n");
         printf("%s", source);
 
-        // sending the file to the client
-        return_200_ok(fromsd, buff, source);
-        // Logging stuff works
-        // Make a log entry for the reqest
-        // time is in buff
+        return_200_ok(fromsd, time_buffer, source);
         
-        // Tue 05 Nov 2013 19:18:34 GMT    127.0.0.1    GET /testDocument.txt HTTP/1.1    404 Not Found
-        printf("Stuff i want to write to the logfile:\n");
-        printf("%s\n", buff);
-        printf("%s\n", ip);
-        printf("%s\n", firstLine);
-        char responseText[80] = "200 OK";
-        printf("%s\n", responseText);
-        char progress[10] = "80/80";
-        fprintf(fp, "%s\t%s\t%s\t%s %s\n", buff, ip, firstLine, responseText, progress);
-
-        int fc = fclose(fp);
-        if (fc == 0){
-            printf("Closed file successfully\n");
-        }
-        else{
-            printf("Failed to close file\n");
-        }
-        // end of logging, can update the log file with static data
         free(source);
 }
 
@@ -360,11 +330,68 @@ int read_request(int fromsd, char * buffer)
         return success;
 } 
 
-void write_logs()
+/* Gets the first line of the request from the client for future validation */
+void get_request_first_line(char* requestInfo, char* firstLine)
 {
-
+        int i;
+        for (i = 0; i < strlen(requestInfo); i++) {
+            if (requestInfo[i] == '\n'){
+                break;
+            }
+        }
+        printf("Value of i: %d\n", i);
+        // use strlcpy to copy first part of the request into new string
+        strlcpy(firstLine, requestInfo, i);        
 }
 
+/* Checks the http request for validity of http method GET */
+int check_http_method(char* method){
+        if (strcmp(method, "GET")){
+                /* method is not GET */
+                return 0;
+        }
+        else {
+                /* good http method */
+                return 1;
+        }
+}
+
+/* writes a suitable log record for the http reponse serviced */
+void write_logs(char* time, char* ip, char* firstLine, char* response, int progress)
+{
+        // practice opening, adding to and closing the log file
+        FILE *fp; /* A file pointer */        
+        // log file located at: /Users/Eric/git/379/assignment2/testLogFile.txt
+        fp = fopen(log_file, "a+");
+        printf("Opened log file successfully\n");
+        if (progress){
+            return;
+            //fprintf(fp, "%s\t%s\t%s\t%s %s\n", time, ip, firstLine, response, progress);
+        }
+        else {
+            fprintf(fp, "%s\t%s\t%s\t%s\n", time, ip, firstLine, response);
+        }
+        int fc = fclose(fp);
+        if (fc == 0){
+            printf("Closed file successfully\n");
+        }
+        else{
+            printf("Failed to close file\n");
+        }
+}
+
+/* gets the current time in the format suitable for http response */
+void get_current_time(char* buff, int size)
+{
+        time_t rawtime;
+        struct tm *timeinfo;
+
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
+        strftime(buff, size, "%a %d %b %Y %T %Z", timeinfo);
+}
+
+/* writes the response to the client */
 void send_response(int fromsd, char* time, char* firstLine,
                    char* responseBody, unsigned int bodySize)
 {

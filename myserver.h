@@ -34,9 +34,12 @@ void check_log_file(char*);
 /* Functions to handle the request */
 void service_request(int, char*);
 int read_request(int, char*);
+void get_request_first_line(char*, char*);
+int check_http_method(char*);
 
 /* Logging functions */
-void write_logs();
+void write_logs(char*, char*, char*, char*, int);
+void get_current_time(char*, int);
 
 /* Functions for writing responses back to the client */
 void send_response(int, char*, char*, char*, unsigned int);
