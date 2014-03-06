@@ -141,7 +141,8 @@ int get_port_number(char* port_string)
                 fprintf(stderr, "%s - not a number\n", port_string);
                 usage();
         }
-        if ((errno == ERANGE && port_number == ULONG_MAX) || (port_number > USHRT_MAX)) {
+        if ((errno == ERANGE && port_number == ULONG_MAX) ||
+            (port_number > USHRT_MAX)) {
                 /* It's a number, but it either can't fit in an unsigned long or
                  * is too big for an unsigned short
                  */
@@ -157,7 +158,7 @@ void check_file_directory(char* directory_path)
         DIR* dir = opendir(directory_path);
 
         errno = 0;
-        /* time to test the directory we are given in the running of the server */
+        /* time to test the directory we are given */
         if (dir) {
                 printf("Successfully opened directory\n");
                 strlcpy(dir_to_host, directory_path, sizeof(dir_to_host));
@@ -189,9 +190,7 @@ void check_log_file(char* log_file_path)
         fclose(fp);
 }
 
-/* Everything above has been refactored to an acceptable level */
-/* And the stuff below needs some serious love */
-
+/* Read the request and handle it */
 void service_request(int fromsd, char* ip)
 {
         char requestInfo[4096] = {0};
@@ -199,7 +198,7 @@ void service_request(int fromsd, char* ip)
         printf("This is whats contained in requestInfo char wise. \n");
         printf("buffer: %s\n", requestInfo);
         printf("And the value READ is as follows: %d\n", read);
-        // OK, now we have the request data, tokenize the first line and get on with it
+
         char firstLine[80];
         get_request_first_line(requestInfo, firstLine);
         printf("This is in firstLine: %s\n", firstLine);
@@ -209,15 +208,13 @@ void service_request(int fromsd, char* ip)
 
         char s[256];
         strcpy(s, firstLine);
-        // TODO run the tokens through some checks, if they aren't valid
-        // need to return a 400 error repsonse for bad request
+
         char* http_method = strtok(s, " "); 
         printf("http_method: %s\n", http_method);
         char* filePath = strtok(NULL, " "); 
         printf("filePath: %s\n", filePath);
         char* httpProt = strtok(NULL, " "); 
         printf("httpProt: %s\n", httpProt);
-
 
         if (check_http_method(http_method)){
             printf("HTTP method is valid\n");
@@ -226,7 +223,7 @@ void service_request(int fromsd, char* ip)
             fprintf(stderr, "Bad HTTP method\n");
             /* return a 400 response for a bad request */
             return_bad_request(fromsd, time_buffer);
-            write_logs(time_buffer, ip, firstLine, "400 Bad Request", 0);
+            write_logs(time_buffer, ip, firstLine, "400 Bad Request", NULL);
             return;
         }
 
@@ -239,21 +236,23 @@ void service_request(int fromsd, char* ip)
 
         FILE *requestedfp;
 
-        // TODO need to distinguish between the file existing and the file not 
-        // being able to be opened (permissions)
-        //
-        // File not existing should be 404
-        // Bad permissions should be 403
-        //
+        /* check for existence of requested file */
+        struct stat sb;
+        if (stat(fullFilePath, &sb) == -1){
+                /* file doesn't exist */
+                return_not_found(fromsd, time_buffer);
+                write_logs(time_buffer, ip, firstLine, "404 Not Found", NULL);
+                return;
+        }
+
+        /* check for access/permission to the file */
         requestedfp = fopen(fullFilePath, "r");
         if (!requestedfp){
-            fprintf(stderr, "requested file doesn't exist, should report as error");
-            return_not_found(fromsd, time_buffer);
-            write_logs(time_buffer, ip, firstLine, "404 Not Found", 0);
-            return;
-        }
-        else {
-            printf("requested file exists, can proceed and serve it\n");
+                fprintf(stderr, "requested file doesn't exist, should report "
+                    "as error");
+                return_forbidden(fromsd, time_buffer);
+                write_logs(time_buffer, ip, firstLine, "403 Forbidden", NULL);
+                return;
         }
 
         // Read from the file, and get ints contents into a buffer
@@ -291,10 +290,10 @@ void service_request(int fromsd, char* ip)
         printf("%s", source);
 
         return_200_ok(fromsd, time_buffer, source);
+        // TODO write to logs with progress
         
         free(source);
 }
-
 
 /* Read the request from the client, return it in a buffer */
 int read_request(int fromsd, char * buffer)
@@ -357,7 +356,8 @@ int check_http_method(char* method){
 }
 
 /* writes a suitable log record for the http reponse serviced */
-void write_logs(char* time, char* ip, char* firstLine, char* response, int progress)
+void write_logs(char* time, char* ip, char* firstLine, char* response,
+    char* progress)
 {
         // practice opening, adding to and closing the log file
         FILE *fp; /* A file pointer */        
@@ -366,7 +366,8 @@ void write_logs(char* time, char* ip, char* firstLine, char* response, int progr
         printf("Opened log file successfully\n");
         if (progress){
             return;
-            //fprintf(fp, "%s\t%s\t%s\t%s %s\n", time, ip, firstLine, response, progress);
+            fprintf(fp, "%s\t%s\t%s\t%s %s\n", time, ip, firstLine, response,
+                progress);
         }
         else {
             fprintf(fp, "%s\t%s\t%s\t%s\n", time, ip, firstLine, response);
@@ -392,7 +393,7 @@ void get_current_time(char* buff, int size)
 }
 
 /* writes the response to the client */
-void send_response(int fromsd, char* time, char* firstLine,
+int send_response(int fromsd, char* time, char* firstLine,
                    char* responseBody, unsigned int bodySize)
 {
         char returnBuffer[10000];
@@ -415,21 +416,36 @@ void send_response(int fromsd, char* time, char* firstLine,
         strcat(returnBuffer, carriage_return);
         strcat(returnBuffer, carriage_return);
 
-        printf("return buffer for the response: %s\n", returnBuffer);
 
+        printf("Just before writing file to the client\n");
+        int length = (int)strlen(responseBody);
+        printf("The reported length is: %d\n", length);
         ssize_t written, w;
         w = 0;
         written = 0;
         while (written < strlen(returnBuffer)){
-                w = write(fromsd, returnBuffer + written, strlen(returnBuffer) - written);
+                w = write(fromsd, returnBuffer + written, strlen(returnBuffer)
+                    - written);
                 if (w == -1){
                         if (errno != EINTR)
-                                err(1, "write failed");
+                                fprintf(stderr, "write failed");
+                                return written;
                 }
                 else
                         written += w;
         }
+        /*
+        printf("After writing to the socket, the value of written is: %d\n", (int)written);
+        int header_length = written - length;
+        int amount_written = written - header_length;
+        printf("And the header size is: %d\n", (int)header_length);
+        printf("amount written is: %d\n", amount_written);
+        char progress[4];
+        sprintf(progress, "%d/%d", amount_written, length); 
+        printf("Progress string is as follows: %s\n", progress);
+        */
         close(fromsd);
+        return written;
 }
 
 /* sends a 200 OK response */
@@ -447,9 +463,9 @@ void return_bad_request(int fromsd, char* time)
         char firstLine[] = "HTTP/1.1 400 Bad Request";
         char responseBody[4096];
 
-        strlcpy(responseBody, "<html><body><h2>Malformed Request</h2>Your \
-                browser sent a request I could not understand.</body> \
-                </html>", sizeof(responseBody));
+        strlcpy(responseBody, "<html><body><h2>Malformed Request</h2>Your "
+                "browser sent a request I could not understand.</body> "
+                "</html>", sizeof(responseBody));
         printf("size of responseBody in bytes is: %d\n",
                 (unsigned int)strlen(responseBody));
         send_response(fromsd, time, firstLine, responseBody,
