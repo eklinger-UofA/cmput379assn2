@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 {
         struct sockaddr_in master, from;
         char *ep, ip[INET_ADDRSTRLEN];
-        int i, port_number, sock, fromlength, fromsd;
+        int i, port_number, sock, fromlength;
         u_short port;
 
         /* if the number of args aren't as expected, print usage info */
@@ -91,6 +91,7 @@ int main(int argc, char *argv[])
 
 	    printf("Server up and listening for connections on port %u\n", port);
         while(1){
+                int fromsd;
                 fromlength = sizeof(from);
                 fromsd = accept(sock, (struct sockaddr *) &from, &fromlength);
                 if (fromsd == -1){
