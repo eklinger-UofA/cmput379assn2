@@ -29,6 +29,11 @@
 
 #define NUM_THREADS 256
 
+struct request_info {
+    int fromsd;
+    char* ip;
+};
+
 /* All error handling and input checking function */
 static void usage();
 void check_number_of_args(int);
@@ -37,7 +42,8 @@ void check_file_directory(char*);
 void check_log_file(char*);
 
 /* Functions to handle the request */
-void service_request(int, char*);
+//void service_request(int, char*);
+void *service_request(void* request_info);
 int read_request(int, char*);
 void get_request_first_line(char*, char*);
 int check_http_method(char*);

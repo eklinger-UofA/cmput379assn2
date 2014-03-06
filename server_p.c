@@ -149,6 +149,7 @@ int main(int argc, char *argv[])
         /* for pthread stuff */
         pthread_t threads[NUM_THREADS];
         pthread_attr_t attr;
+        struct request_info thread_data[NUM_THREADS];
         int rc, t;
         void *status;
 
@@ -208,8 +209,20 @@ int main(int argc, char *argv[])
                 /* get the ip of the request to be used in logging later */
                 inet_ntop(AF_INET, &(from.sin_addr), ip, INET_ADDRSTRLEN);
                 
+                /* initialize thread data for this thread */
+                thread_data[t].fromsd = fromsd;
+                thread_data[t].ip = ip;
+
+                if (t == NUM_THREADS){
+                        t = 0;
+                }
                 /* Now ready to service the new request */
-                service_request(fromsd, ip);
+                rc = pthread_create(&threads[t], NULL, service_request, (void *)&thread_data[t]);
+                t++;
+                if (rc){
+                        fprintf(stderr, "Error; return code from pthread_create is: %d\n", rc);
+                        exit(1);
+                }
         }
         pthread_exit(NULL);
         return(0);
@@ -300,7 +313,8 @@ void check_log_file(char* log_file_path)
 }
 
 /* Read the request and handle it */
-void service_request(int fromsd, char* ip)
+//void service_request(int fromsd, char* ip)
+void *service_request(void* td)
 {
         char requestInfo[4096] = {0};
         char firstLine[80];
@@ -312,12 +326,21 @@ void service_request(int fromsd, char* ip)
         char *source = NULL;
         char fullFilePath[100];
         char progress_string[8];
+        char* ip = NULL;
         struct stat sb;
         FILE *requestedfp;
         long bufsize;
-        int read = read_request(fromsd, requestInfo);
+        int fromsd;
+        int read;
         int progress;
         size_t newLen;
+
+        struct request_info *thread_data;
+        thread_data = td;
+        ip = thread_data->ip;
+        fromsd = thread_data->fromsd;
+        read = read_request(fromsd, requestInfo);
+
 
         printf("This is whats contained in requestInfo char wise. \n");
         printf("buffer: %s\n", requestInfo);
