@@ -105,7 +105,6 @@ int main(int argc, char *argv[])
                 err(1, "sigaction failed");
 
 
-	    printf("Server up and listening for connections on port %u\n", port);
         while(1){
                 int fromsd;
                 fromlength = sizeof(from);
@@ -113,7 +112,6 @@ int main(int argc, char *argv[])
                 if (fromsd == -1){
                         fprintf(stderr, "accept failed\n");
                 }
-                printf("accept succeeded");
                 /* We can folk children to deal with each connection, this
                  * way we can support > 1 client at one time
                  */
@@ -162,7 +160,6 @@ int get_port_number(char* port_string)
 
         /* get and print the port_number from arv */
         port_number = strtoul(port_string, &ep, 10);
-        printf("port_number %u\n", port_number);
 
         if (*port_string == '\0' || *ep != '\0') {
                 /* parameter wasn't a number, or was empty */
@@ -188,7 +185,6 @@ void check_file_directory(char* directory_path)
         errno = 0;
         /* time to test the directory we are given */
         if (dir) {
-                printf("Successfully opened directory\n");
                 strlcpy(dir_to_host, directory_path, sizeof(dir_to_host));
                 closedir(dir);
         }
@@ -213,7 +209,6 @@ void check_log_file(char* log_file_path)
                 exit(1);
         }
         else {
-                printf("Log file exists\n");
                 strlcpy(log_file, log_file_path, sizeof(log_file));
         }
         fclose(fp);
@@ -244,26 +239,18 @@ void service_request(int fromsd, char* ip)
         int progress;
         size_t newLen;
 
-        printf("This is whats contained in requestInfo char wise. \n");
-        printf("buffer: %s\n", requestInfo);
-        printf("And the value READ is as follows: %d\n", read);
 
         get_request_first_line(requestInfo, firstLine);
-        printf("This is in firstLine: %s\n", firstLine);
 
         get_current_time(time_buffer, 70);
 
         strcpy(s, firstLine);
 
         http_method = strtok(s, " "); 
-        printf("http_method: %s\n", http_method);
         filePath = strtok(NULL, " "); 
-        printf("filePath: %s\n", filePath);
         httpProt = strtok(NULL, " "); 
-        printf("httpProt: %s\n", httpProt);
 
         if (check_http_method(http_method)){
-                printf("HTTP method is valid\n");
         }
         else {
                 fprintf(stderr, "Bad HTTP method\n");
@@ -275,9 +262,7 @@ void service_request(int fromsd, char* ip)
 
         /* Concat the paths of the served dir and the requested file path */
         strlcpy(fullFilePath, dir_to_host, sizeof(fullFilePath));
-        printf("fullFilePath: %s\n", fullFilePath);
         strcat(fullFilePath, filePath);
-        printf("fullFilePath: %s\n", fullFilePath);
 
 
         /* check for existence of requested file */
@@ -327,14 +312,8 @@ void service_request(int fromsd, char* ip)
         }
         fclose(requestedfp);
 
-        printf("Moment of truth, does this fread work\n");
-        printf("%s", source);
-
         progress = return_200_ok(fromsd, time_buffer, source);
-        printf("size of the file sent: %d\n", (int)strlen(source));
-        printf("bytes written: %d\n", progress);
         sprintf(progress_string, "%d/%d", (int)strlen(source), progress);
-        printf("progress string: %s\n", progress_string);
         write_logs(time_buffer, ip, firstLine, "200 OK", progress_string);
         
         free(source);
@@ -384,7 +363,6 @@ void get_request_first_line(char* requestInfo, char* firstLine)
                     break;
                 }
         }
-        printf("Value of i: %d\n", i);
         strlcpy(firstLine, requestInfo, i);        
 }
 
@@ -408,7 +386,6 @@ void write_logs(char* time, char* ip, char* firstLine, char* response,
         int fc;
 
         fp = fopen(log_file, "a+");
-        printf("Opened log file successfully\n");
         if (progress){
                 fprintf(fp, "%s\t%s\t%s\t%s %s\n", time, ip, firstLine,
                     response, progress);
@@ -418,10 +395,8 @@ void write_logs(char* time, char* ip, char* firstLine, char* response,
         }
         fc = fclose(fp);
         if (fc == 0){
-                printf("Closed file successfully\n");
         }
         else{
-                printf("Failed to close file\n");
         }
 }
 
@@ -446,7 +421,6 @@ int send_response(int fromsd, char* time, char* firstLine,
         ssize_t written, w;
 
         sprintf(bodysize, "%d", (unsigned int)strlen(responseBody));
-        printf("bodysize: %s", bodysize);
 
         strlcpy(returnBuffer, firstLine, sizeof(returnBuffer));
         strcat(returnBuffer, carriage_return);
@@ -465,9 +439,7 @@ int send_response(int fromsd, char* time, char* firstLine,
         strcat(returnBuffer, carriage_return);
 
 
-        printf("Just before writing file to the client\n");
         length = (int)strlen(responseBody);
-        printf("The reported length is: %d\n", length);
         w = 0;
         written = 0;
         while (written < strlen(returnBuffer)){
@@ -503,8 +475,6 @@ void return_bad_request(int fromsd, char* time)
         strlcpy(responseBody, "<html><body><h2>Malformed Request</h2>Your "
                 "browser sent a request I could not understand.</body> "
                 "</html>", sizeof(responseBody));
-        printf("size of responseBody in bytes is: %d\n",
-                (unsigned int)strlen(responseBody));
         send_response(fromsd, time, firstLine, responseBody,
                 (unsigned int)strlen(responseBody));
 }
