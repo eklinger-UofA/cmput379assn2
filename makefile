@@ -11,7 +11,7 @@ makep:
 	gcc -o server_p server_p.c server_p.h -pthread
 
 makes:
-	gsc -c strlcpy.c
+	gcc -c strlcpy.c
 	gcc -o server_s server_s.c server_s.h
 
 run:

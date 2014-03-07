@@ -399,11 +399,12 @@ void write_logs(char* time, char* ip, char* firstLine, char* response,
 /* gets the current time in the format suitable for http response */
 void get_current_time(char* buff, int size)
 {
-        time_t rawtime;
         struct tm *timeinfo;
+        time_t rawtime;
 
         time(&rawtime);
-        timeinfo = localtime(&rawtime);
+        //timeinfo = localtime(&rawtime);
+        timeinfo = gmtime(&rawtime);
         strftime(buff, size, "%a %d %b %Y %T %Z", timeinfo);
 }
 
