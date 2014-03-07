@@ -14,9 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* server_s.c - base server code for the three implementations
- * of the server assignment 2 for CMPUT 379 Winter 2014
- *
+/*  
  * Accepted command line args are as follows:
  *
  * ./server_s <TCP port number> </path/to/static/files/> </path/to/logfile.txt>
@@ -25,20 +23,14 @@
  */
 
 /*
- * compile with gcc:
+ * compile with cc:
  *
- * gcc -c strlcpy.c
- * gcc -o server server.c strlcpy.o
+ * cc -c strlcpy.c
+ * cc -o server_s server_s.c strlcpy.o
  *
  * Alternatively makefile is included:
  *
- * make makes
- * make runs
- *
- * Testing for failure conditions added, please see README
- * and makefile for more details
- *
- * make clean also provided to clean up generated object files
+ * make makes 
  */
 
 #include "server_s.h"
@@ -56,12 +48,12 @@ struct con connections[MAXCONN];
  */
 struct con * get_free_conn()
 {
-	int i;
-	for (i = 0; i < MAXCONN; i++) {
-		if (connections[i].state == STATE_UNUSED)
-			return(&connections[i]);
-	}
-	return(NULL); /* we're all full - indicate this to our caller */
+		int i;
+		for (i = 0; i < MAXCONN; i++) {
+		    	if (connections[i].state == STATE_UNUSED)
+			        	return(&connections[i]);
+		}
+		return(NULL); /* we're all full - indicate this to our caller */
 }
 
 /*
@@ -70,16 +62,16 @@ struct con * get_free_conn()
  */
 void closecon (struct con *cp, int initflag)
 {
-	if (!initflag) {
-		if (cp->sd != -1)
-			close(cp->sd); /* close the socket */
-		free(cp->buf); /* free up our buffer */
-	}
-	memset(cp, 0, sizeof(struct con)); /* zero out the con struct */
-	cp->buf = NULL; /* unnecessary because of memset above, but put here
-			 * to remind you NULL is 0.
-			 */
-	cp->sd = -1;
+		if (!initflag) {
+				if (cp->sd != -1)
+					    close(cp->sd); /* close the socket */
+				free(cp->buf); /* free up our buffer */
+		}
+		memset(cp, 0, sizeof(struct con)); /* zero out the con struct */
+		cp->buf = NULL; /* unnecessary because of memset above, but put here
+				 * to remind you NULL is 0.
+				 */
+		cp->sd = -1;
 }
 
 
@@ -95,7 +87,6 @@ int main(int argc, char *argv[])
         u_short port;
 
         fd_set *readable = NULL, *writable = NULL;
-        //struct timeval tv;
         int rc;
 
         /* if the number of args aren't as expected, print usage info */
@@ -138,27 +129,22 @@ int main(int argc, char *argv[])
 
 		/* initialize all our connection structures */
 		for (i = 0; i < MAXCONN; i++)
-			closecon(&connections[i], 1);
+			    closecon(&connections[i], 1);
 
-        //int t = 0;
 	    printf("Server up and listening for connections on port %u\n", port);
         while(1){
                 int maxfd = -1;
                 int i = 0;
-                printf("while 0\n");
                 
         		omax = max;
 		        max = sd; /* the listen socket */
                 
-                printf("while 1\n");
          		for (i = 0; i < MAXCONN; i++) {
 			            if (connections[i].sd > max)
 				                max = connections[i].sd;
 		        }   
 
-                printf("while 1\n");
 				if (max > omax) {
-                        printf("while 2\n");
 						/* we need bigger fd_sets allocated */
                     
 						/* free the old ones - does nothing if they are NULL */
@@ -184,7 +170,6 @@ int main(int argc, char *argv[])
 						 */
 				}
                 else {
-                        printf("while 3\n");
 	 			        /*
 	 			   		 * our allocated sets are big enough, just make
 	 			   		 * sure they are cleared to 0. 
@@ -200,10 +185,9 @@ int main(int argc, char *argv[])
 				 * listening socket. so put it in the read set.
 				 */
     
-                printf("while 4\n");
 				FD_SET(sd, readable);
 				if (maxfd < sd)
-					maxfd = sd;
+					    maxfd = sd;
 
 				/*
 				 * now go through the list of connections, and if we
@@ -212,19 +196,17 @@ int main(int argc, char *argv[])
 				 * writable fd_set - in preparation to call select
 				 * to tell us which ones we can read and write to.
 				 */
-                printf("while 5\n");
-                // It segfaults here on the second iteration
 				for (i = 0; i<MAXCONN; i++) {
-					if (connections[i].state == STATE_READING) {
-						FD_SET(connections[i].sd, readable);
-						if (maxfd < connections[i].sd)
-							maxfd = connections[i].sd;
-					}
-					if (connections[i].state == STATE_WRITING) {
-						FD_SET(connections[i].sd, writable);
-						if (maxfd < connections[i].sd)
-							maxfd = connections[i].sd;
-					}
+						if (connections[i].state == STATE_READING) {
+								FD_SET(connections[i].sd, readable);
+								if (maxfd < connections[i].sd)
+									    maxfd = connections[i].sd;
+						}
+						if (connections[i].state == STATE_WRITING) {
+								FD_SET(connections[i].sd, writable);
+								if (maxfd < connections[i].sd)
+									    maxfd = connections[i].sd;
+						}
 				}
 
 				/*
@@ -233,60 +215,59 @@ int main(int argc, char *argv[])
 				 * when select returns, it will indicate in each fd_set
 				 * which sockets are readable and writable
 				 */
-                printf("while 6\n");
 				i = select(maxfd + 1, readable, writable, NULL,NULL);
 				if (i == -1  && errno != EINTR)
-					err(1, "select failed");
+					    err(1, "select failed");
 
-                printf("while 7\n");
 		        if (i > 0) {
                         printf("*** Something is readable or writable ***");
 				        if (FD_ISSET(sd, readable)) {
-							struct con *cp;
-							int newsd;
-							socklen_t slen;
-							struct sockaddr_in sa;
-    
-							slen = sizeof(sa);
-							newsd = accept(sd, (struct sockaddr *)&sa,
-							    &slen);
-							if (newsd == -1)
-								err(1, "accept failed");
-    
-							cp = get_free_conn();
-                            printf("Dont get_free_conn\n");
-							if (cp == NULL) {
-								/*
-								 * we have no connection structures
-								 * so we close connection to our
-								 * client to not leave him hanging
-								 * because we are too busy to
-								 * service his request
-								 */
-                                printf("Trying to close newsd\n");
-								close(newsd);
-                                printf("Done closing newsd\n");
-							} else {
-								/*
-								 * ok, if this worked, we now have a
-								 * new connection. set him up to be
-								 * READING so we do something with him
-								 */
-                                printf("We new have a new connection\n");
-                                printf("1\n");
-                                inet_ntop(AF_INET, &(sa.sin_addr), ip, INET_ADDRSTRLEN);
-                                printf("2\n");
-                                cp->ip = ip;
-                                printf("3\n");
-								cp->state = STATE_READING;
-                                printf("4\n");
-								cp->sd = newsd;
-                                printf("5\n");
-								cp->slen = slen;
-                                printf("6\n");
-								memcpy(&cp->sa, &sa, sizeof(sa));
-                                printf("7\n");
-							}
+								struct con *cp;
+								int newsd;
+								socklen_t slen;
+								struct sockaddr_in sa;
+                                
+								slen = sizeof(sa);
+								newsd = accept(sd, (struct sockaddr *)&sa,
+								    &slen);
+								if (newsd == -1)
+									err(1, "accept failed");
+                                
+								cp = get_free_conn();
+                                printf("Dont get_free_conn\n");
+								if (cp == NULL) {
+									/*
+									 * we have no connection structures
+									 * so we close connection to our
+									 * client to not leave him hanging
+									 * because we are too busy to
+									 * service his request
+									 */
+                                    printf("Trying to close newsd\n");
+									close(newsd);
+                                    printf("Done closing newsd\n");
+								} else {
+									/*
+									 * ok, if this worked, we now have a
+									 * new connection. set him up to be
+									 * READING so we do something with him
+									 */
+                                    printf("We new have a new connection\n");
+                                    printf("1\n");
+                                    inet_ntop(AF_INET, &(sa.sin_addr), ip,
+                                        INET_ADDRSTRLEN);
+                                    printf("2\n");
+                                    cp->ip = ip;
+                                    printf("3\n");
+									cp->state = STATE_READING;
+                                    printf("4\n");
+									cp->sd = newsd;
+                                    printf("5\n");
+									cp->slen = slen;
+                                    printf("6\n");
+									memcpy(&cp->sa, &sa, sizeof(sa));
+                                    printf("7\n");
+								}
 						}
                 }
 				/*
@@ -294,37 +275,14 @@ int main(int argc, char *argv[])
 				 * check to see if they are readble or writable,
 				 * and if so, do a read or write accordingly 
 				 */
-                printf("while 8\n");
 				for (i = 0; i<MAXCONN; i++) {
-					if ((connections[i].state == STATE_READING) &&
-					    FD_ISSET(connections[i].sd, readable))
-						select_read_request(&connections[i]);
-					if ((connections[i].state == STATE_WRITING) &&
-					    FD_ISSET(connections[i].sd, writable))
-						select_write_response(&connections[i]);
+						if ((connections[i].state == STATE_READING) &&
+						        FD_ISSET(connections[i].sd, readable))
+						 	    select_read_request(&connections[i]);
+						if ((connections[i].state == STATE_WRITING) &&
+						        FD_ISSET(connections[i].sd, writable))
+						 	    select_write_response(&connections[i]);
 				}
-
-                printf("while 9\n");
-                //int fromsd;
-                //fromlength = sizeof(from);
-                //fromsd = accept(sock, (struct sockaddr *) &from, &fromlength);
-                //if (fromsd == -1){
-                //        fprintf(stderr, "accept failed\n");
-               // }
-                /* get the ip of the request to be used in logging later */
-                //inet_ntop(AF_INET, &(from.sin_addr), ip, INET_ADDRSTRLEN);
-                
-                //void select_read_request(struct con*);
-                //void select_write_response(struct con*);
-
-                /* Now ready to service the new request */
-                //service_request(fromsd, ip);
-                //connections[t].fromsd = fromsd;
-                //connections[t].ip =  ip;
-                //select_read_request(&connections[t]);
-                //printf("RequestInfo in struct is: %s\n", connections[t].requestInfo);
-                //select_write_response(&connections[t]);
-                printf("while 10\n");
         }
         return(0);
 }
@@ -403,12 +361,12 @@ void check_log_file(char* log_file_path)
         FILE *fp = fopen(log_file_path, "r");
 
         if (!fp){
-            fprintf(stderr, "Log files doesn't exist");
-            exit(1);
+                fprintf(stderr, "Log files doesn't exist");
+                exit(1);
         }
         else {
-            printf("Log file exists\n");
-            strlcpy(log_file, log_file_path, sizeof(log_file));
+                printf("Log file exists\n");
+                strlcpy(log_file, log_file_path, sizeof(log_file));
         }
         fclose(fp);
 }
@@ -464,15 +422,15 @@ void select_write_response(struct con *cp)
         printf("httpProt: %s\n", httpProt);
 
         if (check_http_method(http_method)){
-            printf("HTTP method is valid\n");
+                printf("HTTP method is valid\n");
         }
         else {
-            fprintf(stderr, "Bad HTTP method\n");
-            /* return a 400 response for a bad request */
-            return_bad_request(cp->sd, time_buffer);
-            write_logs(time_buffer, cp->ip, firstLine, "400 Bad Request", NULL);
-		    cp->state = STATE_READING;
-            return;
+                fprintf(stderr, "Bad HTTP method\n");
+                /* return a 400 response for a bad request */
+                return_bad_request(cp->sd, time_buffer);
+                write_logs(time_buffer, cp->ip, firstLine, "400 Bad Request", NULL);
+		        cp->state = STATE_READING;
+                return;
         }
 
         /* Concat the paths of the served dir and the requested file path */
@@ -502,34 +460,32 @@ void select_write_response(struct con *cp)
                 return;
         }
 
-        // Read from the file, and get ints contents into a buffer
-        // its in requestedfp
         /* Go to the end of the file */
         if (fseek(requestedfp, 0L, SEEK_END) == 0){
-            /* Get the size of the file */
-
-            bufsize = ftell(requestedfp);
-            if (bufsize == -1){
-                /* error */
-                err(1, "Failed to get file size");
-            }
-            /* allocate our buffer to that size. */
-            source = malloc(sizeof(char) * (bufsize + 1));
-
-            /* go back to the start of the file */
-            if(fseek(requestedfp, 0L, SEEK_SET) != 0){
-                /* error */
-                err(1, "Failed to seek back to beginning of file");
-            }
-            
-            /* read the entire file into memory */
-            newLen = fread(source, sizeof(char), bufsize, requestedfp);
-            if (newLen == 0){
-                err(1, "Error reading file");
-            }
-            else {
-                source[++newLen] = '\0';
-            }
+                /* Get the size of the file */
+             
+                bufsize = ftell(requestedfp);
+                if (bufsize == -1){
+                    /* error */
+                    err(1, "Failed to get file size");
+                }
+                /* allocate our buffer to that size. */
+                source = malloc(sizeof(char) * (bufsize + 1));
+             
+                /* go back to the start of the file */
+                if(fseek(requestedfp, 0L, SEEK_SET) != 0){
+                    /* error */
+                    err(1, "Failed to seek back to beginning of file");
+                }
+                
+                /* read the entire file into memory */
+                newLen = fread(source, sizeof(char), bufsize, requestedfp);
+                if (newLen == 0){
+                    err(1, "Error reading file");
+                }
+                else {
+                    source[++newLen] = '\0';
+                }
         }
         fclose(requestedfp);
 
@@ -543,124 +499,6 @@ void select_write_response(struct con *cp)
         printf("progress string: %s\n", progress_string);
         write_logs(time_buffer, cp->ip, firstLine, "200 OK", progress_string);
 		cp->state = STATE_READING;
-        
-        free(source);
-}
-
-/* Read the request and handle it */
-void service_request(int fromsd, char* ip)
-{
-        char requestInfo[4096] = {0};
-        char firstLine[80];
-        char time_buffer[70];
-        char s[256];
-        char* http_method = NULL; 
-        char* filePath = NULL; 
-        char* httpProt = NULL; 
-        char *source = NULL;
-        char fullFilePath[100];
-        char progress_string[8];
-        struct stat sb;
-        FILE *requestedfp;
-        long bufsize;
-        int read = read_request(fromsd, requestInfo);
-        int progress;
-        size_t newLen;
-
-        printf("This is whats contained in requestInfo char wise. \n");
-        printf("buffer: %s\n", requestInfo);
-        printf("And the value READ is as follows: %d\n", read);
-
-        get_request_first_line(requestInfo, firstLine);
-        printf("This is in firstLine: %s\n", firstLine);
-
-        get_current_time(time_buffer, 70);
-
-        strcpy(s, firstLine);
-
-        http_method = strtok(s, " "); 
-        printf("http_method: %s\n", http_method);
-        filePath = strtok(NULL, " "); 
-        printf("filePath: %s\n", filePath);
-        httpProt = strtok(NULL, " "); 
-        printf("httpProt: %s\n", httpProt);
-
-        if (check_http_method(http_method)){
-            printf("HTTP method is valid\n");
-        }
-        else {
-            fprintf(stderr, "Bad HTTP method\n");
-            /* return a 400 response for a bad request */
-            return_bad_request(fromsd, time_buffer);
-            write_logs(time_buffer, ip, firstLine, "400 Bad Request", NULL);
-            return;
-        }
-
-        /* Concat the paths of the served dir and the requested file path */
-        strlcpy(fullFilePath, dir_to_host, sizeof(fullFilePath));
-        printf("fullFilePath: %s\n", fullFilePath);
-        strcat(fullFilePath, filePath);
-        printf("fullFilePath: %s\n", fullFilePath);
-
-
-        /* check for existence of requested file */
-        if (stat(fullFilePath, &sb) == -1){
-                /* file doesn't exist */
-                return_not_found(fromsd, time_buffer);
-                write_logs(time_buffer, ip, firstLine, "404 Not Found", NULL);
-                return;
-        }
-
-        /* check for access/permission to the file */
-        requestedfp = fopen(fullFilePath, "r");
-        if (!requestedfp){
-                fprintf(stderr, "requested file doesn't exist, should report "
-                    "as error");
-                return_forbidden(fromsd, time_buffer);
-                write_logs(time_buffer, ip, firstLine, "403 Forbidden", NULL);
-                return;
-        }
-
-        // Read from the file, and get ints contents into a buffer
-        // its in requestedfp
-        /* Go to the end of the file */
-        if (fseek(requestedfp, 0L, SEEK_END) == 0){
-            /* Get the size of the file */
-
-            bufsize = ftell(requestedfp);
-            if (bufsize == -1){
-                /* error */
-                err(1, "Failed to get file size");
-            }
-            /* allocate our buffer to that size. */
-            source = malloc(sizeof(char) * (bufsize + 1));
-
-            /* go back to the start of the file */
-            if(fseek(requestedfp, 0L, SEEK_SET) != 0){
-                /* error */
-                err(1, "Failed to seek back to beginning of file");
-            }
-            
-            /* read the entire file into memory */
-            newLen = fread(source, sizeof(char), bufsize, requestedfp);
-            if (newLen == 0){
-                err(1, "Error reading file");
-            }
-            else {
-                source[++newLen] = '\0';
-            }
-        }
-        fclose(requestedfp);
-
-        printf("Moment of truth, does this fread work\n");
-        printf("%s", source);
-
-        progress = return_200_ok(fromsd, time_buffer, source);
-        printf("size of the file sent: %d\n", (int)strlen(source));
-        printf("bytes written: %d\n", progress);
-        sprintf(progress_string, "%d/%d", (int)strlen(source), progress);
-        printf("progress string: %s\n", progress_string);
-        write_logs(time_buffer, ip, firstLine, "200 OK", progress_string);
         
         free(source);
 }
@@ -710,7 +548,6 @@ void get_request_first_line(char* requestInfo, char* firstLine)
             }
         }
         printf("Value of i: %d\n", i);
-        // use strlcpy to copy first part of the request into new string
         strlcpy(firstLine, requestInfo, i);        
 }
 
@@ -730,11 +567,9 @@ int check_http_method(char* method){
 void write_logs(char* time, char* ip, char* firstLine, char* response,
     char* progress)
 {
-        // practice opening, adding to and closing the log file
         FILE *fp; /* A file pointer */        
         int fc;
 
-        // log file located at: /Users/Eric/git/379/assignment2/testLogFile.txt
         fp = fopen(log_file, "a+");
         printf("Opened log file successfully\n");
         if (progress){
@@ -760,7 +595,6 @@ void get_current_time(char* buff, int size)
         time_t rawtime;
 
         time(&rawtime);
-        //timeinfo = localtime(&rawtime);
         timeinfo = gmtime(&rawtime);
         strftime(buff, size, "%a %d %b %Y %T %Z", timeinfo);
 }

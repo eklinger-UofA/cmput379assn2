@@ -1,6 +1,4 @@
 /* server_f.h */
-
-/* my includes */
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -20,10 +18,6 @@
 
 #include <dirent.h>
 #include <time.h>
-
-/* EXIT_SUCCESS = 0
- * EXIT_FAILURE = 1
- */
 
 /* All error handling and input checking function */
 static void usage();

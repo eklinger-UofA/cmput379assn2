@@ -5,6 +5,10 @@
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
  *
+ * Borrowed heavily from Bob Becks original server.c code
+ * As well from pthread examples forvided in class and lab
+ * for CMPUT 379 Winter 2014 under Martha White
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -14,9 +18,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* server_p.c - base server code for the three implementations
- * of the server assignment 2 for CMPUT 379 Winter 2014
- *
+/*  
  * Accepted command line args are as follows:
  *
  * ./server_p <TCP port number> </path/to/static/files/> </path/to/logfile.txt>
@@ -25,20 +27,14 @@
  */
 
 /*
- * compile with gcc:
+ * compile with cc:
  *
- * gcc -c strlcpy.c
- * gcc -o server server.c strlcpy.o
+ * cc -c strlcpy.c
+ * cc -o server_p server_p.c strlcpy.o
  *
  * Alternatively makefile is included:
  *
- * make 
- * make run
- *
- * Testing for failure conditions added, please see README
- * and makefile for more details
- *
- * make clean also provided to clean up generated object files
+ * make makep 
  */
 
 #include "server_p.h"
@@ -75,7 +71,7 @@ int main(int argc, char *argv[])
 
     	/* don't daemonize if we compile with -DDEBUG */
 	    if (daemon(1, 0) == -1)
-		    err(1, "daemon() failed");
+		        err(1, "daemon() failed");
 
         /* time to set up and listen on the socket */
         memset(&master, 0, sizeof(master));
@@ -131,10 +127,12 @@ int main(int argc, char *argv[])
                         t = 0;
                 }
                 /* Now ready to service the new request */
-                rc = pthread_create(&threads[t], NULL, service_request, (void *)&thread_data[t]);
+                rc = pthread_create(&threads[t], NULL, service_request,
+                    (void *)&thread_data[t]);
                 t++;
                 if (rc){
-                        fprintf(stderr, "Error; return code from pthread_create is: %d\n", rc);
+                        fprintf(stderr, "Error; return code from "
+                            "pthread_create is: %d\n", rc);
                         exit(1);
                 }
         }
@@ -216,18 +214,17 @@ void check_log_file(char* log_file_path)
         FILE *fp = fopen(log_file_path, "r");
 
         if (!fp){
-            fprintf(stderr, "Log files doesn't exist");
-            exit(1);
+                fprintf(stderr, "Log files doesn't exist");
+                exit(1);
         }
         else {
-            printf("Log file exists\n");
-            strlcpy(log_file, log_file_path, sizeof(log_file));
+                printf("Log file exists\n");
+                strlcpy(log_file, log_file_path, sizeof(log_file));
         }
         fclose(fp);
 }
 
 /* Read the request and handle it */
-//void service_request(int fromsd, char* ip)
 void *service_request(void* td)
 {
         char requestInfo[4096] = {0};
@@ -275,14 +272,14 @@ void *service_request(void* td)
         printf("httpProt: %s\n", httpProt);
 
         if (check_http_method(http_method)){
-            printf("HTTP method is valid\n");
+                printf("HTTP method is valid\n");
         }
         else {
-            fprintf(stderr, "Bad HTTP method\n");
-            /* return a 400 response for a bad request */
-            return_bad_request(fromsd, time_buffer);
-            write_logs(time_buffer, ip, firstLine, "400 Bad Request", NULL);
-            return;
+                fprintf(stderr, "Bad HTTP method\n");
+                /* return a 400 response for a bad request */
+                return_bad_request(fromsd, time_buffer);
+                write_logs(time_buffer, ip, firstLine, "400 Bad Request", NULL);
+                return;
         }
 
         /* Concat the paths of the served dir and the requested file path */
@@ -310,34 +307,32 @@ void *service_request(void* td)
                 return;
         }
 
-        // Read from the file, and get ints contents into a buffer
-        // its in requestedfp
         /* Go to the end of the file */
         if (fseek(requestedfp, 0L, SEEK_END) == 0){
-            /* Get the size of the file */
-
-            bufsize = ftell(requestedfp);
-            if (bufsize == -1){
-                /* error */
-                err(1, "Failed to get file size");
-            }
-            /* allocate our buffer to that size. */
-            source = malloc(sizeof(char) * (bufsize + 1));
-
-            /* go back to the start of the file */
-            if(fseek(requestedfp, 0L, SEEK_SET) != 0){
-                /* error */
-                err(1, "Failed to seek back to beginning of file");
-            }
-            
-            /* read the entire file into memory */
-            newLen = fread(source, sizeof(char), bufsize, requestedfp);
-            if (newLen == 0){
-                err(1, "Error reading file");
-            }
-            else {
-                source[++newLen] = '\0';
-            }
+                /* Get the size of the file */
+             
+                bufsize = ftell(requestedfp);
+                if (bufsize == -1){
+                    /* error */
+                    err(1, "Failed to get file size");
+                }
+                /* allocate our buffer to that size. */
+                source = malloc(sizeof(char) * (bufsize + 1));
+             
+                /* go back to the start of the file */
+                if(fseek(requestedfp, 0L, SEEK_SET) != 0){
+                    /* error */
+                    err(1, "Failed to seek back to beginning of file");
+                }
+                
+                /* read the entire file into memory */
+                newLen = fread(source, sizeof(char), bufsize, requestedfp);
+                if (newLen == 0){
+                    err(1, "Error reading file");
+                }
+                else {
+                    source[++newLen] = '\0';
+                }
         }
         fclose(requestedfp);
 
@@ -394,12 +389,11 @@ void get_request_first_line(char* requestInfo, char* firstLine)
         int i;
 
         for (i = 0; i < strlen(requestInfo); i++) {
-            if (requestInfo[i] == '\n'){
-                break;
-            }
+                if (requestInfo[i] == '\n'){
+                        break;
+                }
         }
         printf("Value of i: %d\n", i);
-        // use strlcpy to copy first part of the request into new string
         strlcpy(firstLine, requestInfo, i);        
 }
 
@@ -420,28 +414,25 @@ void write_logs(char* time, char* ip, char* firstLine, char* response,
     char* progress)
 {
         pthread_mutex_lock(&mutex);
-        // practice opening, adding to and closing the log file
-        FILE *fp; /* A file pointer */        
+        FILE *fp;        
         int fc;
 
-        // log file located at: /Users/Eric/git/379/assignment2/testLogFile.txt
         fp = fopen(log_file, "a+");
         printf("Opened log file successfully\n");
         if (progress){
-            fprintf(fp, "%s\t%s\t%s\t%s %s\n", time, ip, firstLine, response,
-                progress);
+                fprintf(fp, "%s\t%s\t%s\t%s %s\n", time, ip, firstLine,
+                    response, progress);
         }
         else {
-            fprintf(fp, "%s\t%s\t%s\t%s\n", time, ip, firstLine, response);
+                fprintf(fp, "%s\t%s\t%s\t%s\n", time, ip, firstLine, response);
         }
         fc = fclose(fp);
         if (fc == 0){
-            printf("Closed file successfully\n");
+                printf("Closed file successfully\n");
         }
         else{
-            printf("Failed to close file\n");
+                printf("Failed to close file\n");
         }
-
         pthread_mutex_unlock(&mutex);
 }
 

@@ -1,6 +1,4 @@
 /* server_s.h */
-
-/* my includes */
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -21,24 +19,20 @@
 #include <dirent.h>
 #include <time.h>
 
-/* EXIT_SUCCESS = 0
- * EXIT_FAILURE = 1
- */
-
 /* we use this structure to keep track of each connection to us */
 struct con {
-	int sd; 	/* the socket for this connection */
-	int state; 	/* the state of the connection */
-	struct sockaddr_in sa; /* the sockaddr of the connection */
-	size_t  slen;   /* the sockaddr length of the connection */
-	char *buf;	/* a buffer to store the characters read in */
-	char *bp;	/* where we are in the buffer */
-	size_t bs;	/* total size of the buffer */
-	size_t bl;	/* how much we have left to read/write */
-
-    /* Stuff i added to the connection */
-    char *requestInfo;
-    char *ip;
+		int sd; 	/* the socket for this connection */
+		int state; 	/* the state of the connection */
+		struct sockaddr_in sa; /* the sockaddr of the connection */
+		size_t  slen;   /* the sockaddr length of the connection */
+		char *buf;	/* a buffer to store the characters read in */
+		char *bp;	/* where we are in the buffer */
+		size_t bs;	/* total size of the buffer */
+		size_t bl;	/* how much we have left to read/write */
+    
+        /* Stuff i added to the connection */
+        char *requestInfo;
+        char *ip;
 };
 
 /* All error handling and input checking function */
@@ -53,7 +47,6 @@ void select_read_request(struct con*);
 void select_write_response(struct con*);
 
 /* Functions to handle the request */
-void service_request(int, char*);
 int read_request(int, char*);
 void get_request_first_line(char*, char*);
 int check_http_method(char*);

@@ -1,14 +1,10 @@
 /* server_p.h */
-
-/* my includes */
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-
 #include <netinet/in.h>
-
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -17,21 +13,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
 #include <dirent.h>
 #include <time.h>
-
 #include <pthread.h>
-
-/* EXIT_SUCCESS = 0
- * EXIT_FAILURE = 1
- */
 
 #define NUM_THREADS 256
 
 struct request_info {
-    int fromsd;
-    char* ip;
+        int fromsd;
+        char* ip;
 };
 
 /* All error handling and input checking function */
@@ -42,7 +32,6 @@ void check_file_directory(char*);
 void check_log_file(char*);
 
 /* Functions to handle the request */
-//void service_request(int, char*);
 void *service_request(void* request_info);
 int read_request(int, char*);
 void get_request_first_line(char*, char*);
