@@ -45,8 +45,8 @@
 
 
         
-char dir_to_host[80];
-char log_file[80];
+char dir_to_host[256];
+char log_file[256];
 char carriage_return[10] = "\r\n";
 
 int main(int argc, char *argv[])
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
     	/* don't daemonize if we compile with -DDEBUG */
 	    if (daemon(1, 0) == -1)
-		    err(1, "daemon() failed");
+		        err(1, "daemon() failed");
 
         /* time to set up and listen on the socket */
         memset(&master, 0, sizeof(master));

@@ -44,8 +44,8 @@
 #include "server_p.h"
 
 
-char dir_to_host[80];
-char log_file[80];
+char dir_to_host[256];
+char log_file[256];
 char carriage_return[10] = "\r\n";
 pthread_mutex_t mutex;
 

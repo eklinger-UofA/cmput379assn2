@@ -83,8 +83,8 @@ void closecon (struct con *cp, int initflag)
 }
 
 
-char dir_to_host[80];
-char log_file[80];
+char dir_to_host[256];
+char log_file[256];
 char carriage_return[10] = "\r\n";
 
 int main(int argc, char *argv[])
