@@ -108,6 +108,10 @@ int main(int argc, char *argv[])
         check_file_directory(argv[2]);
         check_log_file(argv[3]);
 
+    	/* don't daemonize if we compile with -DDEBUG */
+	    if (daemon(1, 0) == -1)
+		    err(1, "daemon() failed");
+
         /* time to set up and listen on the socket */
         memset(&master, 0, sizeof(master));
         master.sin_family = AF_INET;

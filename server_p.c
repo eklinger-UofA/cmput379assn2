@@ -1,93 +1,3 @@
-        /* pthread setup stuff */
-/*
-        pthread_t thread[NUM_THREADS];
-        pthread_attr_t attr;
-        int rc, t;
-        void *status;
-        */
-        
-        /* init and set thread detached attributes */ 
-/*
-        pthread_attr_init(&attr);
-        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-        */
-
-        /* pthread create and join stuff from pthread_join1.c
-         *
-         *         for(t=0;t<NUM_THREADS;t++)
-        {
-            printf("Creating thread %d\n", t);
-            rc = pthread_create(&thread[t], &attr, BusyWork, NULL); 
-            if (rc)
-            {
-                printf("ERROR; return code from pthread_create() is %d\n", rc);
-                exit(-1);
-            }
-        }
-
-        Free attribute and wait for the other threads
-        pthread_attr_destroy(&attr);
-        for(t=0;t<NUM_THREADS;t++)
-        {
-            rc = pthread_join(thread[t], &status);
-            if (rc)
-            {
-                printf("ERROR return code from pthread_join() is %d\n", rc);
-                exit(-1);
-            }
-            printf("Completed join with thread %d status= %ld\n",t,(long)status);
-        }
-
-        This is always the last thing that main should do
-        pthread_exit(NULL);
-        */
-        //struct thread_data {
-            /* Stuff that the thread will need to execute
-             * im thinking just:
-             * fromsd
-             * ip
-             *
-             * for the call to service_request in each thread
-             */
-        //};
-         
-        //struct thread_data thread_data_array[NUM_THREADS];
-
-        /* the for loop for calling pthread with a stuct as the argument */
-        /*
-        for(t=0; t < NUM_THREADS; t++) {
-            sum = sum + t;
-            thread_data_array[t].thread_id = t;
-            thread_data_array[t].sum = sum;
-            thread_data_array[t].message = messages[t];
-            printf("Creating thread %d\n", t);
-            rc = pthread_create(&threads[t], NULL, PrintHello, (void *) 
-                    &thread_data_array[t]);
-            if (rc) {
-                printf("ERROR; return code from pthread_create() is %d\n", rc);
-                exit(-1);
-            }
-        }
-        */
-
-        /* And the called functions way of accessing the variables from theadargs */
-        /*
-        void* PrintHello(void *threadarg) {
-            int taskid, sum;
-            char *hello_msg;
-            struct thread_data *my_data;
-  
-            sleep(1);
-            my_data = (struct thread_data *) threadarg;
-            taskid = my_data->thread_id;
-            sum = my_data->sum;
-            hello_msg = my_data->message;
-            printf("Thread %d: %s  \tSum=%d\n", taskid, hello_msg, sum);
-            pthread_exit(NULL);
-        }
-        */
-        /* end of pthread setup stuff */
-
 /*
  * Copyright (c) 2014 Eric Klinger <eklinger@ualberta.ca>
  *
@@ -162,6 +72,10 @@ int main(int argc, char *argv[])
         /* Check file and logs */
         check_file_directory(argv[2]);
         check_log_file(argv[3]);
+
+    	/* don't daemonize if we compile with -DDEBUG */
+	    if (daemon(1, 0) == -1)
+		    err(1, "daemon() failed");
 
         /* time to set up and listen on the socket */
         memset(&master, 0, sizeof(master));
