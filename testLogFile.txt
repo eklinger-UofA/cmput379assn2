@@ -63,3 +63,12 @@ Fri 07 Mar 2014 00:14:21 UTC	127.0.0.1	GET /index.html HTTP/1.1	200 OK 225/225
 Fri 07 Mar 2014 00:16:11 UTC	127.0.0.1	GET /index.html HTTP/1.1	200 OK 225/225
 Fri 07 Mar 2014 00:24:02 UTC	127.0.0.1	GET /notapage.html HTTP/1.1	404 Not Found
 Fri 07 Mar 2014 00:29:16 UTC	127.0.0.1	GET /notapage.html HTTP/1.1	404 Not Found
+Fri 07 Mar 2014 15:10:11 MST	127.0.0.1	GET /index.html HTTP/1.1	200 OK 225/225
+Fri 07 Mar 2014 15:10:11 MST	127.0.0.1	GET /favicon.ico HTTP/1.1	404 Not Found
+Fri 07 Mar 2014 15:10:14 MST	127.0.0.1	GET /dne.html HTTP/1.1	404 Not Found
+Fri 07 Mar 2014 15:11:30 MST	127.0.0.1	GET /index.html HTTP/1.1	200 OK 225/225
+Fri 07 Mar 2014 15:11:30 MST	127.0.0.1	GET /favicon.ico HTTP/1.1	404 Not Found
+Fri 07 Mar 2014 15:11:34 MST	127.0.0.1	GET /dne.html HTTP/1.1	404 Not Found
+Fri 07 Mar 2014 22:11:47 GMT	127.0.0.1	Fri 07 Mar 2014 22:11:47 GMT	400 Bad Request
+Fri 07 Mar 2014 15:12:10 MST	127.0.0.1	GET /index.html HTTP/1.1	200 OK 225/225
+Fri 07 Mar 2014 15:12:14 MST	127.0.0.1	GET /dne.html HTTP/1.1	404 Not Found
