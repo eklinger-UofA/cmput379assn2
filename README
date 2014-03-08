@@ -2,10 +2,19 @@ CMPUT 379 Assignment 2
 Eric Klinger
 1278636
 
-Notes:
+server_f.c / server_f.h
+A Fork implementation of my simple HTTP/1.1 server
+Each time we accept a connection from a client, a new
+process is created to handle it.
 
-Excellent guide on daemonizing processes:
-http://www.netzmafia.de/skripten/unix/linux-daemon-howto.html
-and another:
-http://www.thegeekstuff.com/2012/02/c-daemon-process/
+server_p.c / server_p.h
+A Pthread implementation of my simple HTTP/1.1 server
+Each time we accept a connection from a client, a new
+pthread is dispatched to handle it.
 
+server_s.c / server_s.h
+This currently isn't working.
+Covered in my questions but conceptually and implementation of
+this server was significantly harder that the other two.
+
+It serves one connetion, then the server crashes and fails

@@ -1,0 +1,59 @@
+Q0: Easiest was the Fork server, hardest was the select server. 
+Reason for Fork being easy, i wrote a server file that handled
+connections one at the time. I then added forking code from our lab
+and a check for the PID and that was about it. Tried hammer my server
+with some scripts and it served all the requests and wrote the logs
+coherently
+
+Reason for select being hardest. I found it hard to debug an
+error when i hit one (learned GDB a little too late to make
+an effective use of my debugging tools). Like in the final
+state i have submitted, no idea why it is segfaulting after the
+first connection (it serves the first OK but fails after).
+Also conceptually the idea of select and the code implementation
+is still somewhat confusing. I read into using poll() later
+on and it made a more sense to me but ran out of time to implement it.
+
+Q1:
+You can make a case for either in a desktop/ISP role:
+
+server_f over server_p:
+If we are expecting heavy traffic, and traffic that will be
+connected for a long time (keep alive). If there are a very
+large number of clients, the threads could bottle neck 
+at shared resources. If the server is hosting large files for
+upload or streaming any slowness or interrupting of service
+could be intollerable
+
+
+server_p over server_f:
+Conversly if the traffic is light, sporadic and short ptheads
+have lower overhead for creation. Why go through all the work
+to create a new process to return a one element JSON object.
+If the threads lifetimes are shorter, contention for shared
+resources is limited. 
+
+Q2:
+server_p over server_s in a ISP deployment:
+In my implementation of the select server, and from what was provided
+in our labs to check for readable or writeable fd's we had to loop
+through all the connections. If my implementation i made this number
+static, but to be used for an ISP that number would have to be
+dynamic. If we are looping over all possible connections, and that
+number continues to grow that implementation becomes more and more
+inefficient. With a pthread implementation we service the client through
+a thread, and then free those resources back to the system. A 
+pthread implementation allows for easy dynamic allocation of 
+connctions.
+
+server_s over server_p for an embedded system:
+If we are deploying our webserver on an embedded system with 
+limited resources we may want to define a max number of
+connections to ensure we don't exhaust what we have available.
+Any extra connections above what we could serve at the moment
+would be dropped and the client would have to retry. Also just taking
+a stab that if we are deploying it on an embedded system we will
+be servicing requests of smaller size (mainly on the write side)
+and as such don't need the overhead of thread creation to serve
+these short requests that can be written to a socket quickly
+
